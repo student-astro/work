@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>물의 전기분해 | Hoffman Voltameter</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Fira+Code:wght@400;500;600&display=swap');
+
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#06090f;--s1:#0d1117;--s2:#161b22;--s3:#21262d;
+  --gold:#e8b931;--gold2:#f0d060;--goldDim:rgba(232,185,49,.12);
+  --sky:#58a6ff;--teal:#39d2c0;--mint:#56d364;
+  --coral:#f78166;--rose:#db61a2;--purple:#bc8cff;
+  --t1:#f0f6fc;--t2:#8b949e;--t3:#484f58;--t4:#30363d;
+  --bdr:rgba(240,246,252,.06);
+}
+html,body{height:100%;overflow:hidden;background:var(--bg);
+  font-family:'Outfit',system-ui,sans-serif;color:var(--t1)}
+body{display:grid;grid-template-rows:auto 1fr auto;grid-template-columns:1fr}
+
+/* ━━━ HEADER ━━━ */
+header{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 24px;height:52px;
+  background:var(--s1);border-bottom:1px solid var(--bdr);
+}
+.brand{display:flex;align-items:center;gap:10px}
+.brand-dot{width:10px;height:10px;border-radius:50%;
+  background:var(--gold);box-shadow:0 0 10px rgba(232,185,49,.4)}
+.brand span{font-size:14px;font-weight:600;color:var(--t2);letter-spacing:.8px;text-transform:uppercase}
+.eq{
+  font-family:'Fira Code',monospace;font-size:15px;font-weight:500;
+  color:var(--t2);letter-spacing:1px;
+  padding:6px 20px;border-radius:8px;
+  background:var(--s2);border:1px solid var(--bdr);
+}
+.eq b{font-weight:600}
+.eq .w{color:var(--sky)}.eq .a{color:var(--gold)}.eq .h{color:var(--mint)}.eq .o{color:var(--coral)}
+.status{display:flex;align-items:center;gap:8px}
+.status-dot{width:7px;height:7px;border-radius:50%;background:var(--mint);
+  animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1;box-shadow:0 0 4px var(--mint)}50%{opacity:.4;box-shadow:none}}
+.status span{font-size:11px;color:var(--t3);font-weight:500}
+
+/* ━━━ MAIN ━━━ */
+main{display:grid;grid-template-columns:1fr 280px;gap:0;overflow:hidden}
+
+.view{position:relative;margin:8px;margin-right:0;border-radius:12px;overflow:hidden;
+  background:var(--s1);border:1px solid var(--bdr)}
+canvas{display:block;width:100%;height:100%}
+.view-label{position:absolute;top:10px;left:14px;
+  font-size:10px;font-weight:600;color:var(--t3);letter-spacing:1.2px;text-transform:uppercase}
+
+/* SIDEBAR */
+.sidebar{display:flex;flex-direction:column;gap:1px;
+  background:var(--bdr);border-left:1px solid var(--bdr);overflow-y:auto}
+.sidebar::-webkit-scrollbar{width:0}
+
+.sb-section{background:var(--s1);padding:14px 16px}
+.sb-head{display:flex;align-items:center;gap:6px;margin-bottom:8px}
+.sb-dot{width:6px;height:6px;border-radius:2px;flex-shrink:0}
+.sb-title{font-size:11px;font-weight:700;color:var(--t2);letter-spacing:.6px;text-transform:uppercase}
+.sb-body{font-size:11.5px;color:var(--t3);line-height:1.7}
+.sb-body p{margin-bottom:4px}
+.sb-body .val{color:var(--t1);font-weight:500}
+.sb-body .cy{color:var(--teal)}.sb-body .gd{color:var(--gold)}
+.sb-body .gr{color:var(--mint)}.sb-body .cr{color:var(--coral)}
+.sb-body .sk{color:var(--sky)}.sb-body .pp{color:var(--purple)}
+
+.rxn-line{
+  display:flex;align-items:center;gap:6px;
+  padding:5px 8px;margin:3px 0;border-radius:6px;
+  font-family:'Fira Code',monospace;font-size:10px;line-height:1.5;
+}
+.rxn-tag{font-size:8px;font-weight:700;padding:2px 6px;border-radius:3px;flex-shrink:0}
+
+.data-row{display:flex;justify-content:space-between;align-items:center;
+  padding:4px 0;border-bottom:1px solid rgba(240,246,252,.03)}
+.data-row:last-child{border:none}
+.data-key{font-size:10.5px;color:var(--t3);font-weight:500}
+.data-val{font-size:11px;font-weight:600}
+
+/* gauge */
+.gauge{display:flex;gap:8px;margin:6px 0}
+.gauge-item{flex:1;text-align:center}
+.gauge-bar{height:4px;border-radius:2px;background:var(--s3);overflow:hidden;margin:4px 0 2px}
+.gauge-fill{height:100%;border-radius:2px;transition:width .3s}
+.gauge-label{font-size:9px;color:var(--t3);font-weight:500}
+.gauge-val{font-size:12px;font-weight:700}
+
+/* ━━━ FOOTER ━━━ */
+footer{
+  display:flex;align-items:center;gap:16px;
+  padding:0 20px;height:36px;
+  background:var(--s1);border-top:1px solid var(--bdr);
+}
+.ft-stage{display:flex;align-items:center;gap:4px}
+.ft-pip{width:18px;height:4px;border-radius:2px;background:var(--s3);transition:all .5s}
+.ft-pip.on{background:var(--gold);box-shadow:0 0 6px rgba(232,185,49,.3)}
+.ft-pip.done{background:var(--mint)}
+.ft-text{font-size:11px;font-weight:600;color:var(--gold);margin-left:8px;min-width:120px}
+.ft-bar{flex:1;height:2px;background:var(--s3);border-radius:1px;overflow:hidden}
+.ft-fill{height:100%;border-radius:1px;background:linear-gradient(90deg,var(--gold),var(--teal));transition:width .2s}
+.ft-time{font-size:11px;font-family:'Fira Code',monospace;color:var(--t3);min-width:42px;text-align:right}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand"><div class="brand-dot"></div><span>Electrolysis Lab</span></div>
+  <div class="eq">
+    <span class="w">2H₂O</span> <span class="a">—⚡→</span>
+    <span class="h">2H₂↑</span> <span style="color:var(--t3)">+</span> <span class="o">O₂↑</span>
+  </div>
+  <div class="status"><div class="status-dot"></div><span>SIMULATING</span></div>
+</header>
+
+<main>
+  <div class="view">
+    <canvas id="c"></canvas>
+    <div class="view-label">HOFFMAN VOLTAMETER · LIVE VIEW</div>
+  </div>
+
+  <div class="sidebar">
+    <!-- Phase -->
+    <div class="sb-section" id="secPhase">
+      <div class="sb-head"><div class="sb-dot" style="background:var(--gold)"></div>
+        <div class="sb-title" id="phTitle">PHASE 1 · 용액 준비</div></div>
+      <div class="sb-body"><p id="phDesc">전해질(<span class="gd">NaOH</span>)이 첨가된 수용액을 호프만 전압계에 주입합니다.</p></div>
+    </div>
+
+    <!-- Reactions -->
+    <div class="sb-section">
+      <div class="sb-head"><div class="sb-dot" style="background:var(--purple)"></div>
+        <div class="sb-title">Half-Reactions</div></div>
+      <div class="sb-body">
+        <div class="rxn-line" style="background:rgba(247,129,102,.06);border:1px solid rgba(247,129,102,.1)">
+          <span class="rxn-tag" style="background:rgba(247,129,102,.15);color:var(--coral)">⊖</span>
+          <span>2H₂O+2e⁻→<span class="gr">H₂↑</span>+2OH⁻</span>
+        </div>
+        <div class="rxn-line" style="background:rgba(88,166,255,.06);border:1px solid rgba(88,166,255,.1)">
+          <span class="rxn-tag" style="background:rgba(88,166,255,.15);color:var(--sky)">⊕</span>
+          <span>2H₂O→<span class="cr">O₂↑</span>+4H⁺+4e⁻</span>
+        </div>
+        <div class="rxn-line" style="background:var(--goldDim);border:1px solid rgba(232,185,49,.12)">
+          <span class="rxn-tag" style="background:rgba(232,185,49,.15);color:var(--gold)">Σ</span>
+          <span class="gd">2H₂O → 2H₂ + O₂</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Data -->
+    <div class="sb-section">
+      <div class="sb-head"><div class="sb-dot" style="background:var(--teal)"></div>
+        <div class="sb-title">Parameters</div></div>
+      <div class="sb-body">
+        <div class="data-row"><span class="data-key">반응 유형</span><span class="data-val cy">분해 (흡열)</span></div>
+        <div class="data-row"><span class="data-key">기체 부피비</span><span class="data-val gd">H₂:O₂ = 2:1</span></div>
+        <div class="data-row"><span class="data-key">이론 전압</span><span class="data-val">1.23 V</span></div>
+        <div class="data-row"><span class="data-key">인가 전압</span><span class="data-val sk">2.0 V</span></div>
+        <div class="data-row"><span class="data-key">전해질</span><span class="data-val">NaOH(aq)</span></div>
+        <div class="data-row"><span class="data-key">전극</span><span class="data-val">Pt (불활성)</span></div>
+      </div>
+    </div>
+
+    <!-- Gauge -->
+    <div class="sb-section">
+      <div class="sb-head"><div class="sb-dot" style="background:var(--mint)"></div>
+        <div class="sb-title">Collection</div></div>
+      <div class="sb-body">
+        <div class="gauge">
+          <div class="gauge-item">
+            <div class="gauge-val gr" id="gH2">0 mL</div>
+            <div class="gauge-bar"><div class="gauge-fill" id="gH2f" style="width:0%;background:var(--mint)"></div></div>
+            <div class="gauge-label">H₂ (−)극</div>
+          </div>
+          <div class="gauge-item">
+            <div class="gauge-val cr" id="gO2">0 mL</div>
+            <div class="gauge-bar"><div class="gauge-fill" id="gO2f" style="width:0%;background:var(--coral)"></div></div>
+            <div class="gauge-label">O₂ (+)극</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Observations -->
+    <div class="sb-section" id="secObs">
+      <div class="sb-head"><div class="sb-dot" style="background:var(--sky)"></div>
+        <div class="sb-title">Observations</div></div>
+      <div class="sb-body" id="obsBody">
+        <p>· 투명한 전해질 용액</p>
+        <p>· 전극 표면 관찰</p>
+      </div>
+    </div>
+
+    <!-- Confirm -->
+    <div class="sb-section">
+      <div class="sb-head"><div class="sb-dot" style="background:var(--rose)"></div>
+        <div class="sb-title">Verification</div></div>
+      <div class="sb-body">
+        <p><span class="gr">H₂</span> · 불꽃 → <span class="gd">"펑" 소리</span></p>
+        <p><span class="cr">O₂</span> · 향불 → <span class="gd">활활 연소</span></p>
+      </div>
+    </div>
+  </div>
+</main>
+
+<footer>
+  <div class="ft-stage" id="ftPips"></div>
+  <div class="ft-text" id="ftTxt">Phase 1</div>
+  <div class="ft-bar"><div class="ft-fill" id="ftFill"></div></div>
+  <div class="ft-time" id="ftTime">0:00</div>
+</footer>
+
+<script>
+/* ═══════════════════════════════════════
+   CORE
+   ═══════════════════════════════════════ */
+const cv=document.getElementById('c'),G=cv.getContext('2d');
+let W,H;
+function fit(){const b=cv.parentElement.getBoundingClientRect();cv.width=W=Math.round(b.width);cv.height=H=Math.round(b.height)}
+fit();window.addEventListener('resize',fit);
+const U=v=>v*W, V=v=>v*H;
+
+/* 단계 */
+const DUR=[240,200,620,520,280];
+const TOT=DUR.reduce((a,b)=>a+b);
+const NAMES=['용액 준비','전원 연결','전기분해','기체 수집','실험 완료'];
+const PHASES=[
+  {t:'PHASE 1 · 용액 준비',d:'전해질(<span class="gd">NaOH</span>)이 첨가된 수용액을 호프만 전압계에 주입합니다. 이온이 전류를 운반합니다.'},
+  {t:'PHASE 2 · 전원 연결',d:'DC 전원(<span class="sk">2.0V</span>)을 양 전극에 연결합니다. 과전압을 포함한 충분한 전압이 인가됩니다.'},
+  {t:'PHASE 3 · 전기분해 진행',d:'<span class="cr">(−)극</span>에서 <span class="gr">H₂</span> 기포, <span class="sk">(+)극</span>에서 <span class="cr">O₂</span> 기포가 발생합니다. H₂ 기포가 <span class="gd">약 2배</span> 많습니다!'},
+  {t:'PHASE 4 · 기체 수집',d:'<span class="gr">H₂</span>가 왼쪽 관에 <span class="gd">2V</span>, <span class="cr">O₂</span>가 오른쪽 관에 <span class="gd">1V</span> 비율로 모입니다. 부피비 2:1을 확인하세요.'},
+  {t:'PHASE 5 · 실험 완료',d:'<span class="gd">2H₂O → 2H₂ + O₂</span> 반응이 완료되었습니다. 수집된 기체로 확인 반응을 수행할 수 있습니다.'}
+];
+const OBS=[
+  ['· 투명한 NaOH 수용액','· 호프만 전압계 관찰','· 기포 없음'],
+  ['· 전원 연결 완료 (2.0V)','· 전극 극성 확인','· LED 점등'],
+  ['· ⚡ (−)극 기포 활발!','· (+)극 기포 발생','· (−)극이 약 2배 많음','· 수면 변화 시작'],
+  ['· 🫧 H₂ 수집관 빠르게 상승','· O₂ 수집관은 절반 속도','· 부피비 2:1 확인','· 수면 높이 차이 관찰'],
+  ['· ✅ 기포 발생 멈춤','· H₂ > O₂ 수집량','· 확인 반응 준비','· 실험 완료']
+];
+
+/* Footer pips */
+!function(){let h='';for(let i=0;i<5;i++)h+=`<div class="ft-pip${i===0?' on':''}" id="fp${i}"></div>`;
+document.getElementById('ftPips').innerHTML=h}();
+
+/* ═══ STATE ═══ */
+let ph=0,fr=0,st=0;
+let wA=0,vA=0;
+let bubL=[],bubR=[],h2=0,o2=0;
+let ions=[];
+
+/* 호프만 전압계 좌표 */
+function leftTube(){return{x:U(.2),y:V(.06),w:U(.08),h:V(.82)}}
+function rightTube(){return{x:U(.52),y:V(.06),w:U(.08),h:V(.82)}}
+function crossBar(){let l=leftTube(),r=rightTube();return{x:l.x,y:l.y+l.h*.65,w:r.x+r.w-l.x,h:V(.12)}}
+function cathPos(){let l=leftTube(),c=crossBar();return{x:l.x+l.w*.3,y:c.y+c.h*.2,w:U(.012),h:c.h*.6}}
+function anodePos(){let r=rightTube(),c=crossBar();return{x:r.x+r.w*.5,y:c.y+c.h*.2,w:U(.012),h:c.h*.6}}
+
+function mkI(t){let c=crossBar();return{t,x:c.x+10+Math.random()*(c.w-20),y:c.y+4+Math.random()*(c.h-8),
+  vx:(Math.random()-.5)*.4,vy:(Math.random()-.5)*.25,alive:true}}
+function init(){
+  ions=[];for(let i=0;i<8;i++){ions.push(mkI('Na+'));ions.push(mkI('OH-'));}
+  for(let i=0;i<12;i++)ions.push(mkI('H₂O'));
+  bubL=[];bubR=[];h2=0;o2=0;wA=0;vA=0;
+}
+function spawnB(a,x,y){a.push({x:x+(Math.random()-.5)*U(.008),y,r:U(.0015)+Math.random()*U(.004),
+  vy:-U(.0005)-Math.random()*U(.001),vx:(Math.random()-.5)*U(.0002),op:.6+Math.random()*.4,done:false})}
+
+/* ═══════════════════════════════════════
+   DRAW
+   ═══════════════════════════════════════ */
+
+function dBg(){
+  G.fillStyle='#080c15';G.fillRect(0,0,W,H);
+  // 미세 도트 패턴
+  G.fillStyle='rgba(240,246,252,.012)';
+  let s=U(.025);
+  for(let x=0;x<W;x+=s)for(let y=0;y<H;y+=s){G.beginPath();G.arc(x,y,.5,0,Math.PI*2);G.fill();}
+}
+
+function dApparatus(){
+  let LT=leftTube(),RT=rightTube(),CB=crossBar();
+
+  // ─── 용액 채움 ───
+  let solTop=LT.y+LT.h*.15;
+  let solCol='rgba(70,130,210,.18)';
+  let solCol2='rgba(60,120,200,.12)';
+
+  // 좌측 관 용액
+  G.fillStyle=solCol;
+  G.fillRect(LT.x+3,solTop,LT.w-6,LT.y+LT.h-solTop-3);
+  // 우측 관 용액
+  G.fillRect(RT.x+3,solTop,RT.w-6,RT.y+RT.h-solTop-3);
+  // 수평 연결부 용액
+  G.fillStyle=solCol2;
+  G.fillRect(CB.x+3,CB.y+3,CB.w-6,CB.h-6);
+
+  // 수면 파동 (좌)
+  G.save();G.beginPath();G.rect(LT.x+2,LT.y,LT.w-4,LT.h);G.clip();
+  G.beginPath();G.moveTo(LT.x+3,solTop);
+  for(let px=LT.x+3;px<=LT.x+LT.w-3;px+=1){
+    G.lineTo(px,solTop+Math.sin((px+fr*.4)*.12)*(ph>=2?2.5:1));}
+  G.lineTo(LT.x+LT.w-3,LT.y+LT.h);G.lineTo(LT.x+3,LT.y+LT.h);G.closePath();
+  G.fillStyle='rgba(70,130,210,.1)';G.fill();G.restore();
+
+  // 수면 파동 (우)
+  G.save();G.beginPath();G.rect(RT.x+2,RT.y,RT.w-4,RT.h);G.clip();
+  G.beginPath();G.moveTo(RT.x+3,solTop);
+  for(let px=RT.x+3;px<=RT.x+RT.w-3;px+=1){
+    G.lineTo(px,solTop+Math.sin((px+fr*.35)*.13)*(ph>=2?2:1));}
+  G.lineTo(RT.x+RT.w-3,RT.y+RT.h);G.lineTo(RT.x+3,RT.y+RT.h);G.closePath();
+  G.fillStyle='rgba(70,130,210,.08)';G.fill();G.restore();
+
+  // ─── 수집된 기체 ───
+  // H₂ (좌측 상단)
+  if(h2>2){
+    let gh=Math.min(h2*.8,LT.h*.55);let gt=LT.y+6;
+    let gg=G.createLinearGradient(0,gt,0,gt+gh);
+    gg.addColorStop(0,'rgba(86,211,100,.1)');gg.addColorStop(1,'rgba(86,211,100,.02)');
+    G.fillStyle=gg;G.fillRect(LT.x+4,gt,LT.w-8,gh);
+  }
+  // O₂ (우측 상단)
+  if(o2>2){
+    let gh=Math.min(o2*.8,RT.h*.55);let gt=RT.y+6;
+    let gg=G.createLinearGradient(0,gt,0,gt+gh);
+    gg.addColorStop(0,'rgba(247,129,102,.1)');gg.addColorStop(1,'rgba(247,129,102,.02)');
+    G.fillStyle=gg;G.fillRect(RT.x+4,gt,RT.w-8,gh);
+  }
+
+  // ─── 유리 관 ───
+  G.strokeStyle='rgba(148,180,220,.3)';G.lineWidth=2.5;
+
+  // 좌측 관 (둥근 꼭대기, U 바닥 연결)
+  G.beginPath();
+  G.moveTo(LT.x,LT.y+8);
+  G.quadraticCurveTo(LT.x,LT.y-2,LT.x+LT.w/2,LT.y-2);
+  G.quadraticCurveTo(LT.x+LT.w,LT.y-2,LT.x+LT.w,LT.y+8);
+  G.lineTo(LT.x+LT.w,LT.y+LT.h);G.stroke();
+  G.beginPath();G.moveTo(LT.x,LT.y+8);G.lineTo(LT.x,LT.y+LT.h);G.stroke();
+
+  // 우측 관
+  G.beginPath();
+  G.moveTo(RT.x,RT.y+8);
+  G.quadraticCurveTo(RT.x,RT.y-2,RT.x+RT.w/2,RT.y-2);
+  G.quadraticCurveTo(RT.x+RT.w,RT.y-2,RT.x+RT.w,RT.y+8);
+  G.lineTo(RT.x+RT.w,RT.y+RT.h);G.stroke();
+  G.beginPath();G.moveTo(RT.x,RT.y+8);G.lineTo(RT.x,RT.y+RT.h);G.stroke();
+
+  // 수평 연결부
+  G.beginPath();
+  G.moveTo(LT.x,CB.y);G.lineTo(LT.x,CB.y+CB.h);
+  G.lineTo(RT.x+RT.w,CB.y+CB.h);G.lineTo(RT.x+RT.w,CB.y);G.stroke();
+  // 내벽
+  G.strokeStyle='rgba(148,180,220,.08)';G.lineWidth=1;
+  G.beginPath();
+  G.moveTo(LT.x+2,LT.y+10);G.lineTo(LT.x+2,LT.y+LT.h-2);G.stroke();
+  G.beginPath();
+  G.moveTo(RT.x+RT.w-2,RT.y+10);G.lineTo(RT.x+RT.w-2,RT.y+RT.h-2);G.stroke();
+
+  // 밸브 (좌측 관 꼭대기)
+  G.fillStyle='#4a5568';
+  G.beginPath();G.roundRect(LT.x-4,LT.y-6,LT.w+8,8,3);G.fill();
+  G.beginPath();G.roundRect(RT.x-4,RT.y-6,RT.w+8,8,3);G.fill();
+
+  // ─── 라벨 ───
+  G.textAlign='center';
+  G.fillStyle='rgba(86,211,100,.7)';G.font=`700 ${U(.014)}px Outfit`;
+  G.fillText('H₂',LT.x+LT.w/2,LT.y-U(.015));
+  G.fillStyle='rgba(247,129,102,.7)';
+  G.fillText('O₂',RT.x+RT.w/2,RT.y-U(.015));
+
+  G.fillStyle='rgba(247,129,102,.5)';G.font=`600 ${U(.009)}px Outfit`;
+  G.fillText('(−) 음극',LT.x+LT.w/2,CB.y+CB.h+U(.015));
+  G.fillStyle='rgba(88,166,255,.5)';
+  G.fillText('(+) 양극',RT.x+RT.w/2,CB.y+CB.h+U(.015));
+
+  // 눈금 (좌)
+  for(let i=1;i<=8;i++){
+    let gy=LT.y+LT.h-i*(LT.h*.1);
+    if(gy>LT.y+10){
+      G.strokeStyle='rgba(148,180,220,.06)';G.lineWidth=1;
+      G.beginPath();G.moveTo(LT.x+LT.w-1,gy);G.lineTo(LT.x+LT.w-U(.006),gy);G.stroke();
+    }
+  }
+  // 눈금 (우)
+  for(let i=1;i<=8;i++){
+    let gy=RT.y+RT.h-i*(RT.h*.1);
+    if(gy>RT.y+10){
+      G.strokeStyle='rgba(148,180,220,.06)';G.lineWidth=1;
+      G.beginPath();G.moveTo(RT.x+1,gy);G.lineTo(RT.x+U(.006),gy);G.stroke();
+    }
+  }
+}
+
+function dElectrodes(){
+  let ca=cathPos(),an=anodePos();
+  for(let {e,col,acol} of [{e:ca,col:'#78909c',acol:'#f78166'},{e:an,col:'#90a4ae',acol:'#58a6ff'}]){
+    let eg=G.createLinearGradient(e.x,0,e.x+e.w,0);
+    eg.addColorStop(0,col);eg.addColorStop(.4,'#b0bec5');eg.addColorStop(1,col);
+    G.fillStyle=eg;G.fillRect(e.x,e.y,e.w,e.h);
+    G.fillStyle='rgba(255,255,255,.06)';G.fillRect(e.x+1,e.y,e.w*.2,e.h);
+
+    if(ph>=2&&ph<=3){
+      let p=Math.sin(fr*.06)*.2+.5;
+      G.globalAlpha=p*.15;G.fillStyle=acol;
+      G.beginPath();G.arc(e.x+e.w/2,e.y+e.h/2,e.w*3.5,0,Math.PI*2);G.fill();
+      G.globalAlpha=1;
+    }
+  }
+}
+
+function dCircuit(){
+  let LT=leftTube(),RT=rightTube(),CB=crossBar();
+  let ca=cathPos(),an=anodePos();
+  let batX=(LT.x+RT.x+RT.w)/2,batY=CB.y+CB.h+V(.12);
+  let bw=U(.09),bh=V(.045);
+
+  let wa=ph>=1?Math.min(wA,1):.05;
+  G.strokeStyle=`rgba(200,215,230,${wa*.25})`;G.lineWidth=2;
+
+  // 좌 전선
+  G.beginPath();G.moveTo(ca.x+ca.w/2,ca.y+ca.h);
+  G.lineTo(ca.x+ca.w/2,batY);G.lineTo(batX-bw/2,batY);G.stroke();
+  // 우 전선
+  G.beginPath();G.moveTo(an.x+an.w/2,an.y+an.h);
+  G.lineTo(an.x+an.w/2,batY);G.lineTo(batX+bw/2,batY);G.stroke();
+
+  // 전자 입자
+  if(ph>=2&&ph<=3){
+    let segs=[
+      [[ca.x+ca.w/2,ca.y+ca.h],[ca.x+ca.w/2,batY]],
+      [[ca.x+ca.w/2,batY],[batX-bw/2,batY]],
+      [[an.x+an.w/2,an.y+an.h],[an.x+an.w/2,batY]],
+      [[an.x+an.w/2,batY],[batX+bw/2,batY]],
+    ];
+    for(let seg of segs){
+      for(let i=0;i<4;i++){
+        let t=((fr*.013+i*.25)%1);
+        let px=seg[0][0]+(seg[1][0]-seg[0][0])*t;
+        let py=seg[0][1]+(seg[1][1]-seg[0][1])*t;
+        let gl=.25+Math.sin(fr*.07+i)*.2;
+        G.beginPath();G.arc(px,py,1.5,0,Math.PI*2);
+        G.fillStyle=`rgba(232,185,49,${gl})`;G.fill();
+      }
+    }
+  }
+
+  // 전원 장치
+  if(ph>=1){
+    let bg=G.createLinearGradient(batX-bw/2,batY-bh/2,batX+bw/2,batY+bh/2);
+    bg.addColorStop(0,'#151d2e');bg.addColorStop(1,'#1f2940');
+    G.fillStyle=bg;G.beginPath();G.roundRect(batX-bw/2,batY-bh/2,bw,bh,5);G.fill();
+    G.strokeStyle='rgba(255,255,255,.08)';G.lineWidth=1;
+    G.beginPath();G.roundRect(batX-bw/2,batY-bh/2,bw,bh,5);G.stroke();
+
+    G.fillStyle='#f78166';G.beginPath();G.roundRect(batX-bw/2-3,batY-3,5,6,1.5);G.fill();
+    G.fillStyle='#58a6ff';G.beginPath();G.roundRect(batX+bw/2-2,batY-3,5,6,1.5);G.fill();
+
+    if(ph>=2){let on=Math.sin(fr*.07)>.2;
+      G.beginPath();G.arc(batX+bw*.32,batY-bh*.25,2,0,Math.PI*2);
+      G.fillStyle=on?'#56d364':'#1b4332';G.fill();}
+
+    G.fillStyle='rgba(232,185,49,.6)';G.font=`600 ${U(.007)}px 'Fira Code'`;G.textAlign='center';
+    G.fillText('DC',batX-U(.012),batY+U(.003));
+    G.fillText('2.0V',batX+U(.015),batY+U(.003));
+
+    G.font=`700 ${U(.008)}px 'Fira Code'`;
+    G.fillStyle='#f78166';G.textAlign='right';G.fillText('−',batX-bw/2-U(.007),batY+U(.003));
+    G.fillStyle='#58a6ff';G.textAlign='left';G.fillText('+',batX+bw/2+U(.005),batY+U(.003));
+  }
+}
+
+function dIons(){
+  let CB=crossBar();G.save();
+  for(let ion of ions){
+    if(!ion.alive)continue;
+    if(ph>=2&&ph<=3){if(ion.t==='OH-')ion.vx+=.001;if(ion.t==='Na+')ion.vx-=.0008;}
+    ion.x+=ion.vx;ion.y+=ion.vy;
+    if(ion.x<CB.x+6||ion.x>CB.x+CB.w-6){ion.vx*=-1;ion.x=Math.max(CB.x+6,Math.min(CB.x+CB.w-6,ion.x));}
+    if(ion.y<CB.y+4||ion.y>CB.y+CB.h-4){ion.vy*=-1;ion.y=Math.max(CB.y+4,Math.min(CB.y+CB.h-4,ion.y));}
+    G.globalAlpha=.45;let r,c,l;
+    switch(ion.t){
+      case'H₂O':r=U(.003);c='rgba(88,166,255,.2)';l='H₂O';break;
+      case'Na+':r=U(.004);c='rgba(188,140,255,.4)';l='Na⁺';break;
+      case'OH-':r=U(.005);c='rgba(232,185,49,.3)';l='OH⁻';break;
+    }
+    G.beginPath();G.arc(ion.x,ion.y,r,0,Math.PI*2);G.fillStyle=c;G.fill();
+    G.fillStyle='rgba(255,255,255,.4)';G.font=`500 ${U(.003)}px Outfit`;G.textAlign='center';
+    G.fillText(l,ion.x,ion.y+r*.4);
+  }
+  G.globalAlpha=1;G.restore();
+}
+
+function dBubbles(arr,rgb,isH2){
+  let LT=leftTube(),RT=rightTube();
+  let tube=isH2?LT:RT;G.save();
+  for(let b of arr){
+    b.x+=b.vx+Math.sin(fr*.03+b.x*10)*.2;b.y+=b.vy;
+    // 관 안에서만 그리기
+    if(b.y>tube.y+10&&b.y<tube.y+tube.h&&!b.done){
+      G.beginPath();G.arc(b.x,b.y,b.r,0,Math.PI*2);
+      G.fillStyle=`rgba(${rgb},${b.op*.16})`;G.fill();
+      G.strokeStyle=`rgba(${rgb},${b.op*.25})`;G.lineWidth=.5;G.stroke();
+      G.beginPath();G.arc(b.x-b.r*.3,b.y-b.r*.3,b.r*.22,0,Math.PI*2);
+      G.fillStyle=`rgba(255,255,255,${b.op*.1})`;G.fill();
+    }
+    if(b.y<tube.y+tube.h*.15&&!b.done){
+      b.done=true;if(isH2)h2+=b.r*U(.012);else o2+=b.r*U(.012);
+    }
+  }
+  G.restore();
+}
+
+/* 미시적 다이어그램 */
+function dDiagram(){
+  let dx=U(.7),dy=V(.08),dw=U(.2),dh=V(.42);
+  G.save();
+  G.fillStyle='rgba(6,9,15,.75)';G.beginPath();G.roundRect(dx,dy,dw,dh,8);G.fill();
+  G.strokeStyle='rgba(240,246,252,.04)';G.lineWidth=1;
+  G.beginPath();G.roundRect(dx,dy,dw,dh,8);G.stroke();
+
+  G.fillStyle='rgba(139,148,158,.3)';G.font=`700 ${U(.006)}px Outfit`;G.textAlign='center';
+  G.fillText('REACTION MECHANISM',dx+dw/2,dy+U(.012));
+
+  if(ph>=2){
+    let fs=U(.0055),lx=dx+U(.008);G.textAlign='left';
+    let y1=dy+dh*.22;
+    G.fillStyle='rgba(247,129,102,.6)';G.font=`600 ${fs}px 'Fira Code'`;
+    G.fillText('⊖ Cathode:',lx,y1);
+    G.fillStyle='rgba(240,246,252,.4)';G.font=`${fs*.85}px 'Fira Code'`;
+    G.fillText('2H₂O + 2e⁻',lx,y1+fs*1.6);
+    G.fillStyle='rgba(57,210,192,.55)';G.fillText(' → H₂↑ + 2OH⁻',lx+U(.048),y1+fs*1.6);
+
+    let y2=dy+dh*.5;
+    G.fillStyle='rgba(88,166,255,.6)';G.font=`600 ${fs}px 'Fira Code'`;
+    G.fillText('⊕ Anode:',lx,y2);
+    G.fillStyle='rgba(240,246,252,.4)';G.font=`${fs*.85}px 'Fira Code'`;
+    G.fillText('2H₂O',lx,y2+fs*1.6);
+    G.fillStyle='rgba(57,210,192,.55)';G.fillText(' → O₂↑ + 4H⁺ + 4e⁻',lx+U(.022),y2+fs*1.6);
+
+    G.textAlign='center';G.fillStyle='rgba(232,185,49,.35)';G.font=`600 ${fs*.8}px 'Fira Code'`;
+    G.fillText('NET: 2H₂O → 2H₂ + O₂',dx+dw/2,dy+dh-U(.008));
+  } else {
+    G.fillStyle='rgba(139,148,158,.1)';G.font=`500 ${U(.007)}px Outfit`;G.textAlign='center';
+    G.fillText('반응 시작 후 표시',dx+dw/2,dy+dh*.45);
+  }
+
+  // 부피비
+  if(h2>20&&o2>10){
+    let vy=dy+dh*.78;
+    G.fillStyle='rgba(232,185,49,.5)';G.font=`700 ${U(.01)}px 'Fira Code'`;G.textAlign='center';
+    G.fillText('H₂ : O₂ = 2 : 1',dx+dw/2,vy);
+    let bw=U(.025);
+    G.fillStyle='rgba(86,211,100,.25)';G.beginPath();G.roundRect(dx+dw/2-bw,vy+U(.005),bw*1.33,3,1.5);G.fill();
+    G.fillStyle='rgba(247,129,102,.25)';G.beginPath();G.roundRect(dx+dw/2-bw+bw*1.33,vy+U(.005),bw*.67,3,1.5);G.fill();
+  }
+  G.restore();
+}
+
+function dHUD(){
+  G.save();G.textAlign='left';
+  let lab=[
+    ['NaOH 수용액 준비','호프만 전압계 관찰'],
+    ['DC 전원 연결 중…','2.0V 인가'],
+    ['⚡ 전기분해 진행','(−) H₂↑  ·  (+) O₂↑'],
+    ['🫧 기체 수집 중',`H₂ ${(h2*1.5).toFixed(0)}mL  ·  O₂ ${(o2*1.5).toFixed(0)}mL`],
+    ['✅ 전기분해 완료','2H₂O → 2H₂ + O₂']
+  ];
+  G.fillStyle='rgba(232,185,49,.65)';G.font=`700 ${U(.009)}px 'Fira Code'`;
+  G.fillText(lab[ph][0],U(.015),V(.95));
+  G.fillStyle='rgba(139,148,158,.35)';G.font=`500 ${U(.007)}px Outfit`;
+  G.fillText(lab[ph][1],U(.015),V(.95)+U(.014));
+  G.restore();
+}
+
+/* ═══════════════════════════════════════
+   UI
+   ═══════════════════════════════════════ */
+function updUI(){
+  for(let i=0;i<5;i++){
+    document.getElementById('fp'+i).className='ft-pip'+(i<ph?' done':i===ph?' on':'');
+  }
+  document.getElementById('ftTxt').textContent=NAMES[ph];
+  document.getElementById('phTitle').textContent=PHASES[ph].t;
+  document.getElementById('phDesc').innerHTML=PHASES[ph].d;
+  document.getElementById('obsBody').innerHTML=OBS[ph].map(o=>`<p>${o}</p>`).join('');
+  // gauges
+  document.getElementById('gH2').textContent=(h2*1.5).toFixed(0)+' mL';
+  document.getElementById('gO2').textContent=(o2*1.5).toFixed(0)+' mL';
+  document.getElementById('gH2f').style.width=Math.min(h2/60*100,100)+'%';
+  document.getElementById('gO2f').style.width=Math.min(o2/60*100,100)+'%';
+}
+
+/* ═══════════════════════════════════════
+   LOOP
+   ═══════════════════════════════════════ */
+function loop(){
+  G.clearRect(0,0,W,H);
+  dBg();dApparatus();dElectrodes();dCircuit();dIons();
+  dBubbles(bubL,'86,211,100',true);
+  dBubbles(bubR,'247,129,102',false);
+  dDiagram();dHUD();
+
+  bubL=bubL.filter(b=>b.y>-20);bubR=bubR.filter(b=>b.y>-20);
+  fr++;st++;
+
+  // progress
+  let p=0;for(let i=0;i<ph;i++)p+=DUR[i];p+=Math.min(st,DUR[ph]);
+  document.getElementById('ftFill').style.width=(p/TOT*100)+'%';
+  let s=Math.floor(p/60);
+  document.getElementById('ftTime').textContent=Math.floor(s/60)+':'+String(s%60).padStart(2,'0');
+
+  if(fr%30===0)updUI();
+
+  let ca=cathPos(),an=anodePos(),LT=leftTube(),RT=rightTube();
+
+  switch(ph){
+    case 0:if(st>=DUR[0])nxt();break;
+    case 1:wA=Math.min(wA+.007,1);vA=Math.min(vA+.009,1);if(st>=DUR[1])nxt();break;
+    case 2:
+      wA=1;vA=1;
+      if(fr%5===0){spawnB(bubL,LT.x+LT.w/2,LT.y+LT.h*.6);spawnB(bubL,LT.x+LT.w/2,LT.y+LT.h*.55);}
+      if(fr%10===0)spawnB(bubR,RT.x+RT.w/2,RT.y+RT.h*.6);
+      if(fr%100===0){let w=ions.filter(i=>i.t==='H₂O'&&i.alive);if(w.length)w[0].alive=false;}
+      if(st>=DUR[2])nxt();break;
+    case 3:
+      if(fr%3===0){spawnB(bubL,LT.x+LT.w/2,LT.y+LT.h*.58);spawnB(bubL,LT.x+LT.w*.4,LT.y+LT.h*.54);spawnB(bubL,LT.x+LT.w*.6,LT.y+LT.h*.52);}
+      if(fr%6===0){spawnB(bubR,RT.x+RT.w/2,RT.y+RT.h*.58);spawnB(bubR,RT.x+RT.w*.45,RT.y+RT.h*.54);}
+      if(fr%70===0){let w=ions.filter(i=>i.t==='H₂O'&&i.alive);if(w.length)w[0].alive=false;}
+      if(st>=DUR[3])nxt();break;
+    case 4:if(st>=DUR[4])full();break;
+  }
+  requestAnimationFrame(loop);
+}
+
+function nxt(){if(ph>=4)return;ph++;st=0;updUI();}
+function full(){ph=0;st=0;fr=0;init();updUI();}
+
+init();updUI();loop();
+</script>
+</body>
+</html>
